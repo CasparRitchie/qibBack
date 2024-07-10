@@ -29,6 +29,28 @@ console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
 console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME);
 console.log("DATABASE_URL:", process.env.DATABASE_URL);
+console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
+// Check if JWT_SECRET is set
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is not set. Please set it in the environment variables.");
+  process.exit(1);
+}
+
+// Middleware for Protecting Routes
+const auth = (req, res, next) => {
+  const token = req.header('Authorization').replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).send('Access denied');
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).send('Invalid token');
+  }
+};
 
 // Load RDS SSL Certificate (only if SSL is required)
 let sslCert;
@@ -44,17 +66,31 @@ const poolConfig = {
   ssl: sslCert ? { ca: sslCert } : false,
 };
 
-const pool = mysql.createPool(poolConfig);
+let pool;
+try {
+  pool = mysql.createPool(poolConfig);
+  console.log("Database connection pool created successfully.");
+} catch (err) {
+  console.error("Error creating database connection pool:", err);
+  process.exit(1);
+}
 
 // S3 configuration
-const s3Client = new S3Client({
-  region: 'eu-north-1', // Replace with your bucket's region
-  endpoint: 'https://s3.eu-north-1.amazonaws.com', // Use the correct endpoint for your bucket's region
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
-});
+let s3Client;
+try {
+  s3Client = new S3Client({
+    region: 'eu-north-1', // Replace with your bucket's region
+    endpoint: 'https://s3.eu-north-1.amazonaws.com', // Use the correct endpoint for your bucket's region
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  });
+  console.log("S3 client created successfully.");
+} catch (err) {
+  console.error("Error creating S3 client:", err);
+  process.exit(1);
+}
 
 const upload = multer({
   storage: multerS3({
@@ -203,21 +239,6 @@ app.post('/login', async (req, res) => {
     res.status(400).send(err.message);
   }
 });
-
-// Middleware for Protecting Routes
-const auth = (req, res, next) => {
-  const token = req.header('Authorization').replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).send('Access denied');
-  }
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).send('Invalid token');
-  }
-};
 
 app.listen(port, () => {
   console.log(`App running on port ${port}.`);
