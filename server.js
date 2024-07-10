@@ -241,9 +241,9 @@ app.post('/login', async (req, res) => {
 });
 
 // // Route to validate token **potentially needs adding
-// app.get('/validate-token', auth, (req, res) => {
-//   res.send({ user: req.user });
-// });
+app.get('/validate-token', auth, (req, res) => {
+  res.send({ user: req.user });
+});
 
 // User Route to get logged-in user's data
 app.get('/user', auth, async (req, res) => {
