@@ -240,6 +240,21 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// User Route to get logged-in user's data
+app.get('/user', auth, async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.query('SELECT id, username, company_id FROM users WHERE id = ?', [req.user.id]);
+    connection.release();
+    if (rows.length === 0) {
+      return res.status(404).send('User not found');
+    }
+    res.send(rows[0]);
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
 app.listen(port, () => {
   console.log(`App running on port ${port}.`);
 });
