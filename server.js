@@ -201,6 +201,21 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Registration Route
+app.post('/register', async (req, res) => {
+  const { username, password, company_id } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const connection = await pool.getConnection();
+    const query = 'INSERT INTO users (username, password, company_id) VALUES (?, ?, ?)';
+    await connection.query(query, [username, hashedPassword, company_id]);
+    connection.release();
+    res.status(201).send('User registered');
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
 app.listen(port, () => {
   console.log(`App running on port ${port}.`);
 });
