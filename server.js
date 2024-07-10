@@ -167,36 +167,6 @@ app.get('/status', async (req, res) => {
   }
 });
 
-// Login route
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const connection = await pool.getConnection();
-    const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
-    connection.release();
-
-    if (rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const user = rows[0];
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error ' + err);
-  }
-});
-
 // Registration Route
 app.post('/register', async (req, res) => {
   const { username, password, company_id } = req.body;
@@ -211,6 +181,43 @@ app.post('/register', async (req, res) => {
     res.status(400).send(err.message);
   }
 });
+
+// Login Route
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
+    connection.release();
+    if (rows.length === 0) {
+      return res.status(401).send('Invalid credentials');
+    }
+    const user = rows[0];
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).send('Invalid credentials');
+    }
+    const token = jwt.sign({ id: user.id, company_id: user.company_id }, 'your_jwt_secret', { expiresIn: '1h' });
+    res.send({ token });
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
+// Middleware for Protecting Routes
+const auth = (req, res, next) => {
+  const token = req.header('Authorization').replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).send('Access denied');
+  }
+  try {
+    const decoded = jwt.verify(token, 'your_jwt_secret');
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).send('Invalid token');
+  }
+};
 
 app.listen(port, () => {
   console.log(`App running on port ${port}.`);
