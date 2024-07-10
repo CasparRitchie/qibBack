@@ -135,6 +135,19 @@ app.post('/upload', auth, upload.single('file'), async (req, res) => {
   }
 });
 
+// List all productions
+app.get('/productions', auth, async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.query('SELECT * FROM productions WHERE company_id = ?', [req.user.company_id]);
+    connection.release();
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.send('Error ' + err);
+  }
+});
+
 // List all documents
 app.get('/documents', auth, async (req, res) => {
   try {
