@@ -14,19 +14,13 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Enable CORS for all routes
-// app.use(cors({
-//   origin: 'http://localhost:3000', // Adjust to your frontend URL
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   credentials: true
-// }));
-
+// Allow origins for both local and deployed frontend
 const allowedOrigins = [
-  'http://localhost:3000', // Local development
-  'https://qib-5cf15e7b8275.herokuapp.com/' // Heroku frontend URL
+  'http://localhost:3000',
+  'https://qib-5cf15e7b8275.herokuapp.com'
 ];
 
+// Enable CORS for all routes
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl requests)
@@ -43,13 +37,6 @@ app.use(cors({
 }));
 
 app.use(express.json()); // Ensure that JSON payloads are parsed
-
-// console.log("Environment Variables Loaded:");
-// console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
-// console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
-// console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME);
-// console.log("DATABASE_URL:", process.env.DATABASE_URL);
-// console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
 // Check if JWT_SECRET is set
 if (!process.env.JWT_SECRET) {
@@ -168,19 +155,6 @@ app.get('/productions', auth, async (req, res) => {
   }
 });
 
-// List all documents
-// app.get('/documents', auth, async (req, res) => {
-//   try {
-//     const connection = await pool.getConnection();
-//     const [rows] = await connection.query('SELECT * FROM documents');
-//     connection.release();
-//     res.json(rows);
-//   } catch (err) {
-//     console.error(err);
-//     res.send('Error ' + err);
-//   }
-// });
-
 // List all documents with production and company details
 app.get('/documents', auth, async (req, res) => {
   try {
@@ -293,7 +267,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// // Route to validate token **potentially needs adding
+// Route to validate token
 app.get('/validate-token', auth, (req, res) => {
   res.send({ user: req.user });
 });
