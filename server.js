@@ -149,10 +149,30 @@ app.get('/productions', auth, async (req, res) => {
 });
 
 // List all documents
+// app.get('/documents', auth, async (req, res) => {
+//   try {
+//     const connection = await pool.getConnection();
+//     const [rows] = await connection.query('SELECT * FROM documents');
+//     connection.release();
+//     res.json(rows);
+//   } catch (err) {
+//     console.error(err);
+//     res.send('Error ' + err);
+//   }
+// });
+
+// List all documents with production and company details
 app.get('/documents', auth, async (req, res) => {
   try {
     const connection = await pool.getConnection();
-    const [rows] = await connection.query('SELECT * FROM documents');
+    const query = `
+      SELECT d.*, p.name as production_name, c.name as company_name
+      FROM documents d
+      JOIN productions p ON d.production_id = p.id
+      JOIN companies c ON p.company_id = c.id
+      WHERE c.id = ?
+    `;
+    const [rows] = await connection.query(query, [req.user.company_id]);
     connection.release();
     res.json(rows);
   } catch (err) {
