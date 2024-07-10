@@ -1,10 +1,18 @@
 require('dotenv').config();
 
-// console.log("Environment Variables Loaded:");
-// console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
-// console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
-// console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME);
-// console.log("DATABASE_URL:", process.env.DATABASE_URL);
+console.log("Environment Variables Loaded:");
+console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
+console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME);
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
+
+if (!process.env.AWS_ACCESS_KEY_ID ||
+    !process.env.AWS_SECRET_ACCESS_KEY ||
+    !process.env.S3_BUCKET_NAME ||
+    !process.env.DATABASE_URL) {
+    console.error("Error: Missing one or more required environment variables.");
+    process.exit(1);
+}
 
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -21,6 +29,7 @@ const port = process.env.PORT || 3000;
 let sslCert;
 try {
   sslCert = fs.readFileSync(path.resolve(__dirname, 'rds-combined-ca-bundle.pem'));
+  console.log("SSL certificate loaded successfully.");
 } catch (err) {
   console.log("SSL certificate not found, proceeding without SSL");
 }
@@ -30,6 +39,8 @@ const poolConfig = {
   uri: process.env.DATABASE_URL,
   ssl: sslCert ? { ca: sslCert } : false,
 };
+
+console.log("Database pool configuration:", poolConfig);
 
 const pool = mysql.createPool(poolConfig);
 
@@ -139,12 +150,9 @@ app.get('/status', async (req, res) => {
       WHERE table_schema = 'quartzib'
     `);
 
-    console.log("Tables retrieved:", tables);
-
     let statusReport = '<h1>Database Status</h1>';
 
     for (const table of tables) {
-      console.log(`Processing table: ${table.TABLE_NAME}`);
       statusReport += `<h2>Table: ${table.TABLE_NAME}</h2>`;
       const [tableData] = await connection.query(`SELECT * FROM quartzib.${table.TABLE_NAME}`);
       statusReport += '<pre>' + JSON.stringify(tableData, null, 2) + '</pre>';
