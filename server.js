@@ -81,7 +81,7 @@ app.get('/db', async (req, res) => {
 });
 
 // Upload file and save metadata
-app.post('/upload', upload.single('file'), async (req, res) => {
+app.post('/upload', auth, upload.single('file'), async (req, res) => {
   const file = req.file;
   const s3Key = file.key;
   const { production_id, version } = req.body; // Add these fields in the request body
@@ -100,7 +100,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 // List all documents
-app.get('/documents', async (req, res) => {
+app.get('/documents', auth, async (req, res) => {
   try {
     const connection = await pool.getConnection();
     const [rows] = await connection.query('SELECT * FROM documents');
@@ -197,7 +197,7 @@ app.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).send('Invalid credentials');
     }
-    const token = jwt.sign({ id: user.id, company_id: user.company_id }, 'your_jwt_secret', { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, company_id: user.company_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.send({ token });
   } catch (err) {
     res.status(400).send(err.message);
@@ -211,7 +211,7 @@ const auth = (req, res, next) => {
     return res.status(401).send('Access denied');
   }
   try {
-    const decoded = jwt.verify(token, 'your_jwt_secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
