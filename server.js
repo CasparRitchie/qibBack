@@ -113,27 +113,23 @@ app.get('/documents', async (req, res) => {
 });
 
 // Download a file
-app.get('/download/:id', async (req, res) => {
+app.get('/download/:id', auth, async (req, res) => {
   const documentId = req.params.id;
 
   try {
     const connection = await pool.getConnection();
     const [rows] = await connection.query('SELECT * FROM documents WHERE id = ?', [documentId]);
     connection.release();
-
     if (rows.length === 0) {
       return res.status(404).send('Document not found');
     }
-
     const document = rows[0];
     const getObjectParams = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: document.s3_key
     };
-
     const command = new GetObjectCommand(getObjectParams);
     const s3Stream = await s3Client.send(command);
-
     res.attachment(document.file_name);
     s3Stream.Body.pipe(res);
   } catch (err) {
