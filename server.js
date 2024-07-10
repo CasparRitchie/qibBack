@@ -15,8 +15,28 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Enable CORS for all routes
+// app.use(cors({
+//   origin: 'http://localhost:3000', // Adjust to your frontend URL
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true
+// }));
+
+const allowedOrigins = [
+  'http://localhost:3000', // Local development
+  'https://qib-5cf15e7b8275.herokuapp.com/' // Heroku frontend URL
+];
+
 app.use(cors({
-  origin: 'http://localhost:3000', // Adjust to your frontend URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
